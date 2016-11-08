@@ -1,5 +1,6 @@
 RSpec.describe Percy::Capybara::Loaders::NativeLoader do
-  let(:loader) { described_class.new(page: nil) }
+  let(:fake_page) { OpenStruct.new(current_host: "http://localhost")}
+  let(:loader) { described_class.new(page: fake_page) }
 
   describe '#build_resources' do
     it 'returns an empty list' do
@@ -80,6 +81,23 @@ RSpec.describe Percy::Capybara::Loaders::NativeLoader do
       expect(loader._should_include_url?('http://example.com/')).to eq(false)
       expect(loader._should_include_url?('http://example.com/foo')).to eq(false)
       expect(loader._should_include_url?('https://example.com/foo')).to eq(false)
+    end
+    context "for nonlocal hosts" do
+      let(:fake_page) { OpenStruct.new(current_host: "http://foo:123") }
+      it "returns true for the same host port" do
+        expect(loader._should_include_url?('http://foo:123/')).to eq(true)
+        expect(loader._should_include_url?('http://foo:123/bar')).to eq(true)
+      end
+      it "returns false for different port" do
+        expect(loader._should_include_url?('http://foo/')).to eq(false)
+        expect(loader._should_include_url?('http://foo/bar')).to eq(false)
+        expect(loader._should_include_url?('http://foo:1234/')).to eq(false)
+        expect(loader._should_include_url?('http://foo:1234/bar')).to eq(false)
+      end
+      it "returns false for different host" do
+        expect(loader._should_include_url?('http://afoo:123/')).to eq(false)
+        expect(loader._should_include_url?('http://afoo:123/bar')).to eq(false)
+      end
     end
   end
   describe '#_get_css_resources', type: :feature, js: true do
